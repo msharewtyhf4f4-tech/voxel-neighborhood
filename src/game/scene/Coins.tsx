@@ -5,6 +5,8 @@ import type { Runtime } from "../runtime";
 import { coinActive } from "../sim/world";
 import { voxelGeometry } from "./voxel";
 
+const MAX_COINS = 600;
+
 export function Coins({ rt }: { rt: Runtime }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const geo = useMemo(
@@ -32,7 +34,8 @@ export function Coins({ rt }: { rt: Runtime }) {
     const m = ref.current;
     if (!m) return;
     const t = rt.time;
-    rt.coins.forEach((c, i) => {
+    m.count = Math.min(MAX_COINS, rt.coins.length);
+    rt.coins.slice(0, MAX_COINS).forEach((c, i) => {
       const on = coinActive(c, t);
       dummy.position.set(c.x, 1 + Math.sin(t * 2 + i) * 0.15, c.z);
       dummy.rotation.set(0, t * 2.5 + i, 0);
@@ -43,5 +46,5 @@ export function Coins({ rt }: { rt: Runtime }) {
     m.instanceMatrix.needsUpdate = true;
   });
 
-  return <instancedMesh ref={ref} args={[geo, mat, rt.coins.length]} castShadow frustumCulled={false} />;
+  return <instancedMesh ref={ref} args={[geo, mat, MAX_COINS]} castShadow frustumCulled={false} />;
 }

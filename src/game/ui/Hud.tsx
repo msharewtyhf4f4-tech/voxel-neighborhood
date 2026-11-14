@@ -1,5 +1,7 @@
-import { ArrowBigUp, Car, Coins, DoorOpen, LogOut, MessageCircle, Send, Users, X } from "lucide-react";
+import { ArrowBigUp, Car, Coins, DoorOpen, LogOut, MessageCircle, Power, Send, Users, X } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { sendChat } from "../net/useCitySync";
 import { pressCarButton, type Runtime } from "../runtime";
 import { useGame } from "../store";
 
@@ -7,7 +9,7 @@ const QUICK = ["السلام عليكم", "مرحبا يا جماعة", "وين 
 
 function TopBar() {
   const points = useGame((s) => s.points);
-  const population = useGame((s) => s.population);
+  const population = useGame((s) => s.residents.length);
   return (
     <div className="hud-top">
       <div className="hud-panel hud-title">
@@ -61,6 +63,17 @@ function SideActions({ rt }: { rt: Runtime }) {
       >
         <MessageCircle className="size-6" />
         <span>دردشة</span>
+      </button>
+      <button
+        type="button"
+        className="side-btn side-btn-small"
+        onClick={() => {
+          if (window.confirm("هل تريد الخروج من المدينة؟")) void supabase.auth.signOut();
+        }}
+        aria-label="خروج"
+      >
+        <Power className="size-5" />
+        <span>خروج</span>
       </button>
     </div>
   );
@@ -135,28 +148,34 @@ function JumpButton({ rt }: { rt: Runtime }) {
 
 function ChatPanel() {
   const messages = useGame((s) => s.messages);
-  const send = useGame((s) => s.sendMessage);
+  const me = useGame((s) => s.me);
+  const online = useGame((s) => s.online);
   const close = useGame((s) => s.setChatOpen);
   const [text, setText] = useState("");
+  const [err, setErr] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   useEffect(() => {
     list.current?.scrollTo({ top: list.current.scrollHeight });
   }, [messages]);
-  const submit = (t: string) => {
-    send(t);
+  const submit = async (t: string) => {
+    if (!me || !t.trim()) return;
     setText("");
+    setErr(await sendChat(me.id, t));
   };
   return (
     <div className="hud-panel chat-panel">
       <div className="chat-head">
-        <span>دردشة المدينة</span>
+        <span>
+          دردشة المدينة <span className="chat-online">● {online} متصل</span>
+        </span>
         <button type="button" className="chat-close" onClick={() => close(false)} aria-label="إغلاق">
           <X className="size-4" />
         </button>
       </div>
       <div ref={list} className="chat-list">
+        {messages.length === 0 && <p className="chat-empty">لا توجد رسائل بعد. قل مرحباً!</p>}
         {messages.map((m) => (
-          <div key={m.id} className="chat-msg" data-mine={m.mine ? "true" : undefined}>
+          <div key={m.id} className="chat-msg" data-mine={m.userId === me?.id ? "true" : undefined}>
             <span className="chat-author">{m.author}</span>
             <span>{m.text}</span>
           </div>
@@ -164,23 +183,24 @@ function ChatPanel() {
       </div>
       <div className="chat-quick">
         {QUICK.map((q) => (
-          <button key={q} type="button" className="chat-chip" onClick={() => submit(q)}>
+          <button key={q} type="button" className="chat-chip" onClick={() => void submit(q)}>
             {q}
           </button>
         ))}
       </div>
+      {err && <p className="chat-error">{err}</p>}
       <form
         className="chat-form"
         onSubmit={(e) => {
           e.preventDefault();
-          submit(text);
+          void submit(text);
         }}
       >
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="اكتب رسالة…"
-          maxLength={80}
+          maxLength={200}
           className="chat-input"
         />
         <button type="submit" className="chat-send" aria-label="إرسال">
@@ -198,7 +218,12 @@ function Hint() {
     return () => clearTimeout(t);
   }, []);
   if (!show) return null;
-  return <div className="hud-panel hud-hint">حرّك العصا للمشي واجمع العملات الذهبية</div>;
+  const me = useGame((s) => s.me);
+  return (
+    <div className="hud-panel hud-hint">
+      أهلاً {me?.name}! بيتك رقم {me?.house} — اجمع العملات الذهبية
+    </div>
+  );
 }
 
 export function Hud({ rt }: { rt: Runtime }) {
