@@ -6,6 +6,18 @@ import { WALK } from "../sim/motion";
 import { useGame } from "../store";
 import { makeGhutraTexture } from "./textures";
 
+export interface AvatarBody {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  speed: number;
+  grounded: boolean;
+}
+
+let ghutraTex: THREE.Texture | null = null;
+const ghutra = () => (ghutraTex ??= makeGhutraTexture());
+
 type V3 = [number, number, number];
 
 function B({ p, s, m }: { p: V3; s: V3; m: THREE.Material }) {
@@ -16,8 +28,13 @@ function B({ p, s, m }: { p: V3; s: V3; m: THREE.Material }) {
   );
 }
 
-/** Voxel Gulf man: white thobe, red-checked ghutra and black agal. */
 export function Player({ rt }: { rt: Runtime }) {
+  return <Avatar body={rt.player} hidden={() => useGame.getState().carState === "driving"} />;
+}
+
+/** Voxel Gulf man: white thobe, red-checked ghutra and black agal. */
+export function Avatar({ body: src, hidden }: { body: AvatarBody; hidden: () => boolean }) {
+  const phase = useRef(0);
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
@@ -32,7 +49,7 @@ export function Player({ rt }: { rt: Runtime }) {
       skin: new THREE.MeshStandardMaterial({ color: "#c68a5e", roughness: 0.8 }),
       beard: new THREE.MeshStandardMaterial({ color: "#2b1d14", roughness: 0.9 }),
       eye: new THREE.MeshStandardMaterial({ color: "#151515", roughness: 0.5 }),
-      ghutra: new THREE.MeshStandardMaterial({ map: makeGhutraTexture(), roughness: 0.8 }),
+      ghutra: new THREE.MeshStandardMaterial({ map: ghutra(), roughness: 0.8 }),
       agal: new THREE.MeshStandardMaterial({ color: "#141414", roughness: 0.5 }),
       sandal: new THREE.MeshStandardMaterial({ color: "#6b4423", roughness: 0.8 }),
     }),
@@ -42,14 +59,13 @@ export function Player({ rt }: { rt: Runtime }) {
   useFrame((_, delta) => {
     const g = root.current;
     if (!g) return;
-    const p = rt.player;
-    const driving = useGame.getState().carState === "driving";
-    g.visible = !driving;
+    const p = src;
+    g.visible = !hidden();
     g.position.set(p.x, p.y, p.z);
     g.rotation.y = p.yaw;
     const amt = Math.min(1, p.speed / WALK.SPEED);
-    rt.walkPhase += Math.min(delta, 0.05) * (4 + 7 * amt) * amt;
-    const s = Math.sin(rt.walkPhase);
+    phase.current += Math.min(delta, 0.05) * (4 + 7 * amt) * amt;
+    const s = Math.sin(phase.current);
     const air = !p.grounded;
     if (body.current) body.current.position.y = Math.abs(s) * 0.05 * amt;
     if (armL.current) armL.current.rotation.x = air ? -2.6 : s * 0.7 * amt;

@@ -1,62 +1,94 @@
 import { create } from "zustand";
+import type { Resident } from "./sim/world";
 
 export type CarState = "none" | "parked" | "driving";
 
 export interface ChatMessage {
-  id: number;
+  id: string;
+  userId: string;
   author: string;
   text: string;
-  mine: boolean;
+  createdAt: string;
+}
+
+export interface Me {
+  id: string;
+  name: string;
+  house: number;
 }
 
 interface GameUI {
+  me: Me | null;
+  residents: Resident[];
+  /** coins shown in the top bar (saved + not yet saved) */
   points: number;
-  population: number;
+  /** coins collected but not yet saved to the cloud */
+  unsaved: number;
+  online: number;
   carState: CarState;
   nearCar: boolean;
   chatOpen: boolean;
   messages: ChatMessage[];
-  bubble: { id: number; text: string } | null;
+  bubbles: Record<string, { id: string; text: string }>;
+  start: (me: Me, coins: number, residents: Resident[], messages: ChatMessage[]) => void;
+  reset: () => void;
+  upsertResident: (r: Resident) => void;
   addPoints: (n: number) => void;
-  setPopulation: (n: number) => void;
+  markSaved: (amount: number, serverTotal: number) => void;
+  setOnline: (n: number) => void;
   setCarState: (s: CarState) => void;
   setNearCar: (v: boolean) => void;
   setChatOpen: (v: boolean) => void;
-  sendMessage: (text: string) => void;
+  addMessage: (m: ChatMessage) => void;
 }
 
-let nextId = 1;
+const BUBBLE_MS = 5000;
 
-export const useGame = create<GameUI>((set, get) => ({
+const initial = {
+  me: null,
+  residents: [],
   points: 0,
-  population: 0,
-  carState: "none",
+  unsaved: 0,
+  online: 1,
+  carState: "none" as CarState,
   nearCar: false,
   chatOpen: false,
-  messages: [
-    {
-      id: 0,
-      author: "دليل المدينة",
-      text: "أهلاً بك في مدينة المشتركين! امشِ في الشارع واجمع العملات الذهبية.",
-      mine: false,
-    },
-  ],
-  bubble: null,
-  addPoints: (n) => set((s) => ({ points: s.points + n })),
-  setPopulation: (n) => set({ population: n }),
+  messages: [],
+  bubbles: {},
+};
+
+export const useGame = create<GameUI>((set, get) => ({
+  ...initial,
+  start: (me, coins, residents, messages) =>
+    set({ ...initial, me, points: coins, residents, messages }),
+  reset: () => set({ ...initial }),
+  upsertResident: (r) =>
+    set((s) => {
+      const others = s.residents.filter((x) => x.userId !== r.userId);
+      return { residents: [...others, r].sort((a, b) => a.number - b.number) };
+    }),
+  addPoints: (n) => set((s) => ({ points: s.points + n, unsaved: s.unsaved + n })),
+  markSaved: (amount, serverTotal) =>
+    set((s) => {
+      const unsaved = Math.max(0, s.unsaved - amount);
+      return { unsaved, points: serverTotal + unsaved };
+    }),
+  setOnline: (online) => set({ online }),
   setCarState: (carState) => set({ carState }),
   setNearCar: (nearCar) => set({ nearCar }),
   setChatOpen: (chatOpen) => set({ chatOpen }),
-  sendMessage: (raw) => {
-    const text = raw.trim().slice(0, 80);
-    if (!text) return;
-    const id = nextId++;
+  addMessage: (m) => {
+    if (get().messages.some((x) => x.id === m.id)) return;
     set((s) => ({
-      messages: [...s.messages.slice(-30), { id, author: "أنت", text, mine: true }],
-      bubble: { id, text },
+      messages: [...s.messages.slice(-60), m],
+      bubbles: { ...s.bubbles, [m.userId]: { id: m.id, text: m.text } },
     }));
     setTimeout(() => {
-      if (get().bubble?.id === id) set({ bubble: null });
-    }, 4500);
+      const b = get().bubbles[m.userId];
+      if (b?.id !== m.id) return;
+      const next = { ...get().bubbles };
+      delete next[m.userId];
+      set({ bubbles: next });
+    }, BUBBLE_MS);
   },
 }));

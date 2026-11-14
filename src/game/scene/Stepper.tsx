@@ -66,11 +66,11 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     const driving = ui.carState === "driving";
 
     if (driving) {
-      stepCar(rt.car, { ...mv, jump }, dt);
+      stepCar(rt.car, { ...mv, jump }, dt, rt.layout.walkEndZ);
       rt.player.x = rt.car.x;
       rt.player.z = rt.car.z;
     } else {
-      stepWalker(rt.player, { ...mv, jump }, dt, rt.obstacles);
+      stepWalker(rt.player, { ...mv, jump }, dt, rt.obstacles, rt.layout.walkEndZ);
       if (ui.carState === "parked") applyVertical(rt.car, false, 0, dt);
     }
 
