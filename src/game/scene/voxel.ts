@@ -38,7 +38,7 @@ export function voxelGeometry(voxels: Voxel[]): THREE.BufferGeometry {
       col = new THREE.Color(v.c);
       colorCache.set(v.c, col);
     }
-    const n = g.attributes.position.count;
+    const n = g.getAttribute("position").count;
     const arr = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
       arr[i * 3] = col.r;

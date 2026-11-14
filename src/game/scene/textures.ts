@@ -17,7 +17,7 @@ function finish(c: HTMLCanvasElement, repeat?: [number, number]) {
 function speckle(ctx: CanvasRenderingContext2D, w: number, h: number, colors: string[], n: number, seed: number, size = 2) {
   const rng = mulberry32(seed);
   for (let i = 0; i < n; i++) {
-    ctx.fillStyle = colors[Math.floor(rng() * colors.length)];
+    ctx.fillStyle = colors[Math.floor(rng() * colors.length)]!;
     ctx.fillRect(Math.floor(rng() * w), Math.floor(rng() * h), size, size);
   }
 }

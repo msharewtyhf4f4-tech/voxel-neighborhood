@@ -18,7 +18,7 @@ export const SIGN_Y = 2.5;
 export const signYaw = (h: House) => (h.side === -1 ? Math.PI / 4 : -Math.PI / 4);
 
 function houseVoxels(h: House): Voxel[] {
-  const st = HOUSE_STYLES[h.style];
+  const st = HOUSE_STYLES[h.style % HOUSE_STYLES.length]!;
   const W = 7.6;
   const D = 7;
   const H = h.floors === 2 ? 6.6 : 4.5;
