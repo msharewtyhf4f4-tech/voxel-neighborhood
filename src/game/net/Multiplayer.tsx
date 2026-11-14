@@ -19,7 +19,7 @@ interface NetState {
 }
 
 interface Remote {
-  target: NetState;
+  target: NetState | null;
   shown: AvatarBody;
   driving: boolean;
   seen: boolean;
@@ -50,19 +50,11 @@ export function Multiplayer({ rt, meId, name }: { rt: Runtime; meId: string; nam
     channel
       .on("broadcast", { event: "state" }, ({ payload }) => {
         const s = payload as NetState;
-        if (s.id === meId || !names.current.has(s.id)) return;
+        if (s.id === meId) return;
         const r = remotes.current.get(s.id);
-        if (r) {
-          r.target = s;
-          r.driving = s.d === 1;
-        } else {
-          remotes.current.set(s.id, {
-            target: s,
-            shown: { x: s.x, y: s.y, z: s.z, yaw: s.ry, speed: 0, grounded: true },
-            driving: s.d === 1,
-            seen: false,
-          });
-        }
+        if (!r) return; // not in the roster (yet / anymore)
+        r.target = s;
+        r.driving = s.d === 1;
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<{ name: string }>();
@@ -70,6 +62,16 @@ export function Multiplayer({ rt, meId, name }: { rt: Runtime; meId: string; nam
         useGame.getState().setOnline(Math.max(1, names.current.size));
         names.current.delete(meId);
         for (const id of [...remotes.current.keys()]) if (!names.current.has(id)) remotes.current.delete(id);
+        for (const id of names.current.keys()) {
+          if (!remotes.current.has(id)) {
+            remotes.current.set(id, {
+              target: null,
+              shown: { x: 0, y: 0, z: 0, yaw: Math.PI, speed: 0, grounded: true },
+              driving: false,
+              seen: false,
+            });
+          }
+        }
         setIds([...names.current.keys()]);
       })
       .subscribe((status) => {
@@ -91,6 +93,7 @@ export function Multiplayer({ rt, meId, name }: { rt: Runtime; meId: string; nam
     for (const r of remotes.current.values()) {
       const s = r.shown;
       const t = r.target;
+      if (!t) continue;
       const dx = t.x - s.x;
       const dz = t.z - s.z;
       if (!r.seen || Math.hypot(dx, dz) > 8) {
@@ -143,13 +146,14 @@ function RemotePlayer({ id, name, remotes }: { id: string; name: string; remotes
   const car = useRef<THREE.Group>(null);
   const tag = useRef<THREE.Group>(null);
   const bubble = useGame((s) => s.bubbles[id]);
-  const fallback = useRef<AvatarBody>({ x: 0, y: -50, z: 0, yaw: 0, speed: 0, grounded: true });
+  const [body] = useState<AvatarBody>(
+    () => remotes.get(id)?.shown ?? { x: 0, y: 0, z: 0, yaw: 0, speed: 0, grounded: true },
+  );
 
   useFrame(() => {
     const r = remotes.get(id);
     if (g.current) g.current.visible = !!r?.seen;
     if (!r) return;
-    fallback.current = r.shown;
     if (car.current) {
       car.current.visible = r.driving;
       car.current.position.set(r.shown.x, r.shown.y, r.shown.z);
@@ -158,7 +162,6 @@ function RemotePlayer({ id, name, remotes }: { id: string; name: string; remotes
     if (tag.current) tag.current.position.set(r.shown.x, r.shown.y + (r.driving ? 2.8 : 2.3), r.shown.z);
   });
 
-  const body = remotes.get(id)?.shown ?? fallback.current;
   return (
     <group ref={g} visible={false}>
       <Avatar body={body} hidden={() => remotes.get(id)?.driving ?? true} />
