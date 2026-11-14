@@ -1,23 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+const GameCanvas = lazy(() => import("@/game/GameCanvas"));
+
 export const Route = createFileRoute("/")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "مدينة المشتركين — لعبة مدينة مكعبات ثلاثية الأبعاد" },
+      {
+        name: "description",
+        content: "تجوّل في شارع مدينة المشتركين بشخصية خليجية، اجمع النقاط، استدعِ سيارتك ودردش مع الجميع.",
+      },
+      { property: "og:title", content: "مدينة المشتركين — لعبة مكعبات ثلاثية الأبعاد" },
+      {
+        property: "og:description",
+        content: "شارع طويل ومنازل بأسماء المشتركين، تلعبها مباشرة من متصفح الجوال.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+function Loading() {
+  return (
+    <div className="game-loading" dir="rtl">
+      <div className="game-loading-cube" />
+      <p>جاري بناء المدينة…</p>
+    </div>
+  );
+}
+
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <Suspense fallback={<Loading />}>
+      <GameCanvas />
+    </Suspense>
   );
 }
