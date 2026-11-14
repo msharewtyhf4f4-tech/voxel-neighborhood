@@ -28,3 +28,10 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Game architecture
+- Game rules (layout, movement, coins, car) live in `src/game/sim/` as plain TypeScript with no React/three imports, so they stay unit-testable (`src/game/sim/rules.test.ts`).
+- Per-frame state lives in the `Runtime` object (`src/game/runtime.ts`), advanced only by the single `Stepper` useFrame (priority -1); zustand (`src/game/store.ts`) holds only HUD-facing state, updated on change, never every frame.
+- Static city scenery is merged into one vertex-colored geometry (`voxelGeometry`) to keep mobile draw calls low; add new scenery to `cityGeometry.ts`, not as separate meshes.
+- The game route uses `ssr: false` and lazy-loads `GameCanvas`; the canvas wrapper is `dir="ltr"` (drei Html mispositions under RTL) while the HUD is `dir="rtl"`.
+- Subscriber names/residents come from `SUBSCRIBERS` in `src/game/sim/world.ts`.
