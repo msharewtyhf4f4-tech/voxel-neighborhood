@@ -14,13 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          coins: number
+          coins_saved_at: string | null
+          created_at: string
+          display_name: string
+          house_number: number
+          id: string
+          username: string
+        }
+        Insert: {
+          coins?: number
+          coins_saved_at?: string | null
+          created_at?: string
+          display_name: string
+          house_number: number
+          id: string
+          username: string
+        }
+        Update: {
+          coins?: number
+          coins_saved_at?: string | null
+          created_at?: string
+          display_name?: string
+          house_number?: number
+          id?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_coins: { Args: { p_amount: number }; Returns: number }
     }
     Enums: {
       [_ in never]: never
