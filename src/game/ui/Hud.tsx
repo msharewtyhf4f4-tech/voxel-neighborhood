@@ -212,13 +212,13 @@ function ChatPanel() {
 }
 
 function Hint() {
+  const me = useGame((s) => s.me);
   const [show, setShow] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setShow(false), 6000);
     return () => clearTimeout(t);
   }, []);
   if (!show) return null;
-  const me = useGame((s) => s.me);
   return (
     <div className="hud-panel hud-hint">
       أهلاً {me?.name}! بيتك رقم {me?.house} — اجمع العملات الذهبية

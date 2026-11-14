@@ -86,7 +86,7 @@
   --radius: 1rem;
   /* Sunny Gulf neighborhood: sky blue, warm sand, turquoise doors, gold coins */
   --sky: oklch(0.85 0.07 225);
-  --background: oklch(0.85 0.07 225);
+  --background: oklch(0.97 0.015 85);
   --foreground: oklch(0.25 0.04 230);
   --card: oklch(0.97 0.02 85);
   --card-foreground: oklch(0.25 0.04 230);
@@ -478,6 +478,139 @@
   border: 0.45rem solid transparent;
   border-bottom: 0;
   border-top-color: var(--bubble);
+}
+
+.side-btn-small {
+  height: 3.2rem;
+  opacity: 0.85;
+}
+.chat-online {
+  margin-inline-start: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--hud-accent);
+}
+.chat-empty,
+.chat-error {
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--hud-muted);
+  padding: 0.25rem 0.6rem;
+}
+.chat-error {
+  color: var(--gold);
+}
+.remote-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.name-tag {
+  padding: 0.1rem 0.55rem;
+  border-radius: 9999px;
+  background: var(--hud);
+  color: var(--hud-foreground);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ---------- Login ---------- */
+.login-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 20% 10%, oklch(0.95 0.04 210) 0%, transparent 45%),
+    linear-gradient(180deg, var(--sky), oklch(0.9 0.06 80));
+  font-family: var(--font-display);
+}
+.login-card {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem;
+  border-radius: 1.5rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 8px 0 oklch(0.75 0.05 80), 0 20px 40px oklch(0.3 0.05 230 / 0.2);
+  animation: fade-up 0.4s ease both;
+}
+.login-icon {
+  width: 5.5rem;
+  height: 5.5rem;
+  align-self: center;
+  border-radius: 1.4rem;
+  box-shadow: var(--shadow-hud);
+  animation: cube-hop 2.4s ease-in-out infinite;
+}
+.login-title {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.login-sub {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.login-field input {
+  font-size: 16px;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 2px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.login-field input:focus {
+  border-color: var(--primary);
+}
+.login-error {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--destructive);
+  text-align: center;
+}
+.login-btn {
+  margin-top: 0.25rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 5px 0 oklch(0.45 0.1 185);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.login-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 oklch(0.45 0.1 185);
+}
+.login-btn:disabled {
+  opacity: 0.7;
+}
+.login-note {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
 }
 
 /* ---------- Animations ---------- */
