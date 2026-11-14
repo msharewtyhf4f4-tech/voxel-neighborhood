@@ -3,7 +3,7 @@ import {
   CAR_HALF,
   COIN_RADIUS,
   COIN_VALUE,
-  STREET_END_Z,
+  DEFAULT_LAYOUT,
   STREET_START_Z,
   WALK_HALF,
   coinActive,
@@ -97,7 +97,13 @@ export function pushOut(b: Body, obstacles: Obstacle[], radius: number) {
   }
 }
 
-export function stepWalker(b: Body, inp: MoveInput, dt: number, obstacles: Obstacle[] = []) {
+export function stepWalker(
+  b: Body,
+  inp: MoveInput,
+  dt: number,
+  obstacles: Obstacle[] = [],
+  endZ = DEFAULT_LAYOUT.walkEndZ,
+) {
   const tx = inp.x * WALK.SPEED;
   const tz = -inp.y * WALK.SPEED;
   const k = 1 - Math.exp(-WALK.ACCEL * dt);
@@ -109,12 +115,12 @@ export function stepWalker(b: Body, inp: MoveInput, dt: number, obstacles: Obsta
   if (b.speed > 0.3) b.yaw = turnToward(b.yaw, Math.atan2(b.vx, b.vz), WALK.TURN * dt);
   pushOut(b, obstacles, WALK.RADIUS);
   b.x = clamp(b.x, -WALK_HALF, WALK_HALF);
-  b.z = clamp(b.z, STREET_END_Z, STREET_START_Z);
+  b.z = clamp(b.z, endZ, STREET_START_Z);
   applyVertical(b, inp.jump, WALK.JUMP_V, dt);
 }
 
 /** Arcade car: steers toward the joystick direction, speed follows stick tilt. */
-export function stepCar(b: Body, inp: MoveInput, dt: number) {
+export function stepCar(b: Body, inp: MoveInput, dt: number, endZ = DEFAULT_LAYOUT.walkEndZ) {
   const mag = Math.min(1, Math.hypot(inp.x, inp.y));
   if (mag > 0.15) {
     const target = Math.atan2(inp.x, -inp.y);
@@ -134,8 +140,8 @@ export function stepCar(b: Body, inp: MoveInput, dt: number) {
     b.x = clamp(b.x, -CAR_HALF, CAR_HALF);
     b.speed *= Math.exp(-3 * dt);
   }
-  if (b.z < STREET_END_Z || b.z > STREET_START_Z) {
-    b.z = clamp(b.z, STREET_END_Z, STREET_START_Z);
+  if (b.z < endZ || b.z > STREET_START_Z) {
+    b.z = clamp(b.z, endZ, STREET_START_Z);
     b.speed *= Math.exp(-6 * dt);
   }
   applyVertical(b, inp.jump, CAR.HOP_V, dt);
@@ -160,18 +166,18 @@ export function canEnterCar(player: Body, car: Body): boolean {
   return Math.hypot(player.x - car.x, player.z - car.z) <= CAR_ENTER_DIST;
 }
 
-export function summonCarSpot(player: Body) {
+export function summonCarSpot(player: Body, endZ = DEFAULT_LAYOUT.walkEndZ) {
   const x = clamp(player.x >= 0 ? player.x - 3.2 : player.x + 3.2, -CAR_HALF, CAR_HALF);
-  const z = clamp(player.z - 1.5, STREET_END_Z, STREET_START_Z);
+  const z = clamp(player.z - 1.5, endZ, STREET_START_Z);
   return { x, z };
 }
 
-export function exitSpot(car: Body) {
+export function exitSpot(car: Body, endZ = DEFAULT_LAYOUT.walkEndZ) {
   const px = Math.cos(car.yaw);
   const pz = -Math.sin(car.yaw);
   const side = car.x >= 0 ? 1 : -1;
   return {
     x: clamp(car.x + px * 2 * side, -WALK_HALF, WALK_HALF),
-    z: clamp(car.z + pz * 2 * side, STREET_END_Z, STREET_START_Z),
+    z: clamp(car.z + pz * 2 * side, endZ, STREET_START_Z),
   };
 }

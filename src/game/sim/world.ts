@@ -5,14 +5,12 @@ export const SIDEWALK_OUTER = 6.8;
 export const SIDEWALK_H = 0.12;
 export const WALK_HALF = 6.6;
 export const CAR_HALF = 3.0;
-export const HOUSES_PER_SIDE = 12;
+export const MIN_ROWS = 12;
 export const HOUSE_SPACING = 11;
 export const HOUSE_CENTER_X = 12;
 export const FIRST_HOUSE_Z = -8;
 export const STREET_START_Z = 6;
-export const STREET_END_Z = FIRST_HOUSE_Z - (HOUSES_PER_SIDE - 1) * HOUSE_SPACING - 8;
 export const ROAD_START_Z = 24;
-export const ROAD_END_Z = -162;
 export const GATE_Z = -2;
 export const SIGN_X = 6.95;
 export const SIGN_DZ = 2.8;
@@ -22,43 +20,37 @@ export const COIN_RADIUS = 1.1;
 export const COIN_RESPAWN_S = 25;
 export const COIN_COUNT = 40;
 
-export interface Subscriber {
+/** A registered player who owns a house. */
+export interface Resident {
+  userId: string;
+  number: number;
   name: string;
-  residents: number;
+  coins: number;
 }
 
-/** Subscriber list shown on the houses (placeholder names). */
-export const SUBSCRIBERS: Subscriber[] = [
-  { name: "أبو محمد", residents: 5 },
-  { name: "نورة", residents: 3 },
-  { name: "سلطان", residents: 4 },
-  { name: "فهد", residents: 2 },
-  { name: "ريم", residents: 3 },
-  { name: "عبدالله", residents: 6 },
-  { name: "سارة", residents: 2 },
-  { name: "خالد", residents: 4 },
-  { name: "مريم", residents: 3 },
-  { name: "تركي", residents: 5 },
-  { name: "هند", residents: 2 },
-  { name: "ناصر", residents: 4 },
-  { name: "لطيفة", residents: 3 },
-  { name: "بدر", residents: 2 },
-  { name: "العنود", residents: 4 },
-  { name: "حمد", residents: 6 },
-  { name: "شيخة", residents: 3 },
-  { name: "يوسف", residents: 2 },
-  { name: "دانة", residents: 4 },
-  { name: "مشعل", residents: 5 },
-  { name: "روان", residents: 3 },
-  { name: "سعود", residents: 4 },
-  { name: "جواهر", residents: 2 },
-  { name: "عمر", residents: 3 },
-];
+export interface Layout {
+  rows: number;
+  /** farthest point the player can walk/drive to */
+  walkEndZ: number;
+  roadEndZ: number;
+  mosqueZ: number;
+}
+
+/** Street length grows with the highest house number, always leaving free lots. */
+export function makeLayout(maxHouseNumber: number): Layout {
+  const rows = Math.max(MIN_ROWS, Math.ceil((maxHouseNumber + 2) / 2));
+  const lastRowZ = FIRST_HOUSE_Z - (rows - 1) * HOUSE_SPACING;
+  return { rows, walkEndZ: lastRowZ - 8, roadEndZ: lastRowZ - 33, mosqueZ: lastRowZ - 25 };
+}
+
+export const DEFAULT_LAYOUT = makeLayout(0);
 
 export interface House {
   number: number;
+  /** empty string when the lot is free */
   name: string;
-  residents: number;
+  coins: number;
+  owner: string | null;
   /** -1 = left side of the street, 1 = right side */
   side: -1 | 1;
   x: number;
@@ -68,15 +60,18 @@ export interface House {
 }
 
 /** Odd house numbers on the left, even on the right, numbered from the gate. */
-export function buildHouses(subs: Subscriber[] = SUBSCRIBERS): House[] {
-  return subs.slice(0, HOUSES_PER_SIDE * 2).map((s, i) => {
+export function buildHouses(residents: Resident[], rows: number): House[] {
+  const byNumber = new Map(residents.map((r) => [r.number, r]));
+  return Array.from({ length: rows * 2 }, (_, i) => {
     const number = i + 1;
+    const r = byNumber.get(number);
     const side: -1 | 1 = number % 2 === 1 ? -1 : 1;
     const row = Math.floor(i / 2);
     return {
       number,
-      name: s.name,
-      residents: s.residents,
+      name: r?.name ?? "",
+      coins: r?.coins ?? 0,
+      owner: r?.userId ?? null,
       side,
       x: side * HOUSE_CENTER_X,
       z: FIRST_HOUSE_Z - row * HOUSE_SPACING,
@@ -86,8 +81,16 @@ export function buildHouses(subs: Subscriber[] = SUBSCRIBERS): House[] {
   });
 }
 
+/** Where a player appears: on the sidewalk in front of their house. */
+export function spawnAtHouse(houseNumber: number) {
+  const i = Math.max(0, houseNumber - 1);
+  const side = houseNumber % 2 === 1 ? -1 : 1;
+  return { x: side * 5.3, z: FIRST_HOUSE_Z - Math.floor(i / 2) * HOUSE_SPACING - 1.6 };
+}
+
+/** City population = number of houses that have an owner. */
 export function cityPopulation(houses: House[]): number {
-  return houses.reduce((sum, h) => sum + h.residents, 0);
+  return houses.filter((h) => h.owner !== null).length;
 }
 
 export function floorAt(x: number): number {
@@ -111,8 +114,9 @@ export interface Coin {
   takenAt: number;
 }
 
-export function buildCoins(seed = 7, count = COIN_COUNT): Coin[] {
+export function buildCoins(layout: Layout = DEFAULT_LAYOUT, seed = 7): Coin[] {
   const rng = mulberry32(seed);
+  const count = Math.max(COIN_COUNT, Math.floor((STREET_START_Z - 8 - (layout.walkEndZ + 4)) / 3.2));
   return Array.from({ length: count }, (_, i) => ({
     x: (rng() * 2 - 1) * 5.4,
     z: STREET_START_Z - 8 - i * 3.2,
@@ -130,9 +134,9 @@ export interface Obstacle {
   r: number;
 }
 
-export function buildPalms(): { x: number; z: number }[] {
+export function buildPalms(rows: number): { x: number; z: number }[] {
   const out: { x: number; z: number }[] = [];
-  for (let row = 0; row < HOUSES_PER_SIDE; row++) {
+  for (let row = 0; row < rows; row++) {
     const z = FIRST_HOUSE_Z - row * HOUSE_SPACING - HOUSE_SPACING / 2;
     out.push({ x: -5.9, z }, { x: 5.9, z });
   }
@@ -145,7 +149,7 @@ export function signPosition(h: House) {
 
 export function buildObstacles(houses: House[]): Obstacle[] {
   return [
-    ...buildPalms().map((p) => ({ ...p, r: 0.45 })),
+    ...buildPalms(Math.ceil(houses.length / 2)).map((p) => ({ ...p, r: 0.45 })),
     ...houses.map((h) => ({ ...signPosition(h), r: 0.2 })),
   ];
 }
