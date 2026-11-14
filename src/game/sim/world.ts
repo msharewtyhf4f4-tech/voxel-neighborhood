@@ -1,24 +1,23 @@
-// Pure city layout & rules. No React, no three.js.
+// Pure residential layout & shared rules. No React, no three.js.
 
 export const ROAD_HALF = 4;
 export const SIDEWALK_OUTER = 6.8;
 export const SIDEWALK_H = 0.12;
-export const WALK_HALF = 6.6;
-export const CAR_HALF = 3.0;
-export const MIN_ROWS = 12;
+export const ROWS_PER_STREET = 12;
+export const HOUSES_PER_STREET = ROWS_PER_STREET * 2;
+export const MIN_STREETS = 3;
 export const HOUSE_SPACING = 11;
-export const HOUSE_CENTER_X = 12;
+export const HOUSE_OFFSET_X = 12;
 export const FIRST_HOUSE_Z = -8;
-export const STREET_START_Z = 6;
-export const ROAD_START_Z = 24;
+export const STREET_NORTH_Z = -146;
+export const STREET_SOUTH_Z = 14;
 export const GATE_Z = -2;
-export const SIGN_X = 6.95;
+export const SIGN_OFFSET_X = 6.95;
 export const SIGN_DZ = 2.8;
 
 export const COIN_VALUE = 10;
 export const COIN_RADIUS = 1.1;
 export const COIN_RESPAWN_S = 25;
-export const COIN_COUNT = 40;
 
 /** A registered player who owns a house. */
 export interface Resident {
@@ -29,21 +28,22 @@ export interface Resident {
 }
 
 export interface Layout {
-  rows: number;
-  /** farthest point the player can walk/drive to */
-  walkEndZ: number;
-  roadEndZ: number;
-  mosqueZ: number;
+  /** residential streets; each holds 24 houses */
+  streets: number;
 }
 
-/** Street length grows with the highest house number, always leaving free lots. */
+/** More streets are added as players join, always leaving free houses. */
 export function makeLayout(maxHouseNumber: number): Layout {
-  const rows = Math.max(MIN_ROWS, Math.ceil((maxHouseNumber + 2) / 2));
-  const lastRowZ = FIRST_HOUSE_Z - (rows - 1) * HOUSE_SPACING;
-  return { rows, walkEndZ: lastRowZ - 8, roadEndZ: lastRowZ - 33, mosqueZ: lastRowZ - 25 };
+  return { streets: Math.max(MIN_STREETS, Math.ceil((maxHouseNumber + 2) / HOUSES_PER_STREET)) };
 }
 
-export const DEFAULT_LAYOUT = makeLayout(0);
+/** Street 0 is the main street (with the gate); then west, east, then further west. */
+export function streetX(s: number): number {
+  if (s === 0) return 0;
+  if (s === 1) return -36;
+  if (s === 2) return 36;
+  return -36 * (s - 1);
+}
 
 export interface House {
   number: number;
@@ -51,7 +51,8 @@ export interface House {
   name: string;
   coins: number;
   owner: string | null;
-  /** -1 = left side of the street, 1 = right side */
+  street: number;
+  /** -1 = left (west) of its street, 1 = right (east) */
   side: -1 | 1;
   x: number;
   z: number;
@@ -59,22 +60,32 @@ export interface House {
   style: number;
 }
 
-/** Odd house numbers on the left, even on the right, numbered from the gate. */
-export function buildHouses(residents: Resident[], rows: number): House[] {
+export function housePlace(number: number) {
+  const i = number - 1;
+  const street = Math.floor(i / HOUSES_PER_STREET);
+  const within = i % HOUSES_PER_STREET;
+  const side: -1 | 1 = within % 2 === 0 ? -1 : 1;
+  const row = Math.floor(within / 2);
+  const sx = streetX(street);
+  return { street, side, sx, x: sx + side * HOUSE_OFFSET_X, z: FIRST_HOUSE_Z - row * HOUSE_SPACING };
+}
+
+/** Odd house numbers on the left of each street, even on the right. */
+export function buildHouses(residents: Resident[], layout: Layout): House[] {
   const byNumber = new Map(residents.map((r) => [r.number, r]));
-  return Array.from({ length: rows * 2 }, (_, i) => {
+  return Array.from({ length: layout.streets * HOUSES_PER_STREET }, (_, i) => {
     const number = i + 1;
     const r = byNumber.get(number);
-    const side: -1 | 1 = number % 2 === 1 ? -1 : 1;
-    const row = Math.floor(i / 2);
+    const p = housePlace(number);
     return {
       number,
       name: r?.name ?? "",
       coins: r?.coins ?? 0,
       owner: r?.userId ?? null,
-      side,
-      x: side * HOUSE_CENTER_X,
-      z: FIRST_HOUSE_Z - row * HOUSE_SPACING,
+      street: p.street,
+      side: p.side,
+      x: p.x,
+      z: p.z,
       floors: i % 3 === 1 ? 2 : 1,
       style: (i * 5) % 7,
     };
@@ -83,9 +94,8 @@ export function buildHouses(residents: Resident[], rows: number): House[] {
 
 /** Where a player appears: on the sidewalk in front of their house. */
 export function spawnAtHouse(houseNumber: number) {
-  const i = Math.max(0, houseNumber - 1);
-  const side = houseNumber % 2 === 1 ? -1 : 1;
-  return { x: side * 5.3, z: FIRST_HOUSE_Z - Math.floor(i / 2) * HOUSE_SPACING - 1.6 };
+  const p = housePlace(Math.max(1, houseNumber));
+  return { x: p.sx + p.side * 5.3, z: p.z - 1.6 };
 }
 
 /** City population = number of houses that have an owner. */
@@ -93,8 +103,8 @@ export function cityPopulation(houses: House[]): number {
   return houses.filter((h) => h.owner !== null).length;
 }
 
-export function floorAt(x: number): number {
-  return Math.abs(x) > ROAD_HALF ? SIDEWALK_H : 0;
+export function signPosition(h: House) {
+  return { x: streetX(h.street) + h.side * SIGN_OFFSET_X, z: h.z + SIGN_DZ };
 }
 
 export function mulberry32(seed: number) {
@@ -114,16 +124,6 @@ export interface Coin {
   takenAt: number;
 }
 
-export function buildCoins(layout: Layout = DEFAULT_LAYOUT, seed = 7): Coin[] {
-  const rng = mulberry32(seed);
-  const count = Math.max(COIN_COUNT, Math.floor((STREET_START_Z - 8 - (layout.walkEndZ + 4)) / 3.2));
-  return Array.from({ length: count }, (_, i) => ({
-    x: (rng() * 2 - 1) * 5.4,
-    z: STREET_START_Z - 8 - i * 3.2,
-    takenAt: -1,
-  }));
-}
-
 export function coinActive(c: Coin, now: number): boolean {
   return c.takenAt < 0 || now - c.takenAt >= COIN_RESPAWN_S;
 }
@@ -134,22 +134,29 @@ export interface Obstacle {
   r: number;
 }
 
-export function buildPalms(rows: number): { x: number; z: number }[] {
+export interface Rect {
+  x0: number;
+  x1: number;
+  z0: number;
+  z1: number;
+}
+
+export function palmsForStreet(s: number): { x: number; z: number }[] {
+  const sx = streetX(s);
   const out: { x: number; z: number }[] = [];
-  for (let row = 0; row < rows; row++) {
+  for (let row = 0; row < ROWS_PER_STREET; row++) {
     const z = FIRST_HOUSE_Z - row * HOUSE_SPACING - HOUSE_SPACING / 2;
-    out.push({ x: -5.9, z }, { x: 5.9, z });
+    out.push({ x: sx - 5.9, z }, { x: sx + 5.9, z });
   }
   return out;
 }
 
-export function signPosition(h: House) {
-  return { x: h.side * SIGN_X, z: h.z + SIGN_DZ };
-}
-
-export function buildObstacles(houses: House[]): Obstacle[] {
-  return [
-    ...buildPalms(Math.ceil(houses.length / 2)).map((p) => ({ ...p, r: 0.45 })),
-    ...houses.map((h) => ({ ...signPosition(h), r: 0.2 })),
-  ];
+/** Solid footprint of a house and its front yard wall. */
+export function houseBox(h: House): Rect {
+  const sx = streetX(h.street);
+  const near = SIDEWALK_OUTER + 0.1;
+  const far = HOUSE_OFFSET_X + 3.7;
+  return h.side === -1
+    ? { x0: sx - far, x1: sx - near, z0: h.z - 4, z1: h.z + 4 }
+    : { x0: sx + near, x1: sx + far, z0: h.z - 4, z1: h.z + 4 };
 }
