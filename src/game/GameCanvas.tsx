@@ -23,7 +23,7 @@ export default function GameCanvas() {
   }, [rt]);
 
   return (
-    <div ref={wrap} className="game-root">
+    <div ref={wrap} className="game-root" dir="ltr">
       <Canvas
         shadows
         dpr={[1, 2]}
