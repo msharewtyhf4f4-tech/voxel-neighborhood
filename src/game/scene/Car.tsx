@@ -38,10 +38,21 @@ function carVoxels(): Voxel[] {
   return v;
 }
 
+let shared: { geo: THREE.BufferGeometry; mat: THREE.Material } | null = null;
+function carAssets() {
+  return (shared ??= {
+    geo: voxelGeometry(carVoxels()),
+    mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.1 }),
+  });
+}
+
+export function CarModel() {
+  const { geo, mat } = useMemo(carAssets, []);
+  return <mesh geometry={geo} material={mat} castShadow receiveShadow />;
+}
+
 export function Car({ rt }: { rt: Runtime }) {
   const g = useRef<THREE.Group>(null);
-  const geo = useMemo(() => voxelGeometry(carVoxels()), []);
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.1 }), []);
 
   useFrame(() => {
     const grp = g.current;
@@ -59,7 +70,7 @@ export function Car({ rt }: { rt: Runtime }) {
 
   return (
     <group ref={g} visible={false}>
-      <mesh geometry={geo} material={mat} castShadow receiveShadow />
+      <CarModel />
     </group>
   );
 }

@@ -8,7 +8,7 @@ import { useGame } from "../store";
 /** Chat bubble that floats above the player (or the car while driving). */
 export function Bubble({ rt }: { rt: Runtime }) {
   const g = useRef<THREE.Group>(null);
-  const bubble = useGame((s) => s.bubble);
+  const bubble = useGame((s) => (s.me ? s.bubbles[s.me.id] : undefined));
   useFrame(() => {
     if (!g.current) return;
     const driving = useGame.getState().carState === "driving";

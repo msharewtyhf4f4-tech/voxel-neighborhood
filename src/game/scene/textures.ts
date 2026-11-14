@@ -78,21 +78,22 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-export function drawHouseSign(c: HTMLCanvasElement, h: House) {
+export function drawHouseSign(c: HTMLCanvasElement, h: House, mine: boolean) {
   const W = c.width;
   const H = c.height;
   const ctx = c.getContext("2d")!;
+  const empty = h.owner === null;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#2a9d8f";
+  ctx.fillStyle = mine ? "#f2c230" : empty ? "#8a9a9d" : "#2a9d8f";
   roundRect(ctx, 0, 0, W, H, 36);
   ctx.fill();
-  ctx.fillStyle = "#fff8ea";
+  ctx.fillStyle = empty ? "#eef0ec" : "#fff8ea";
   roundRect(ctx, 14, 14, W - 28, H - 28, 26);
   ctx.fill();
   // number badge on the right (RTL start)
   const cx = W - 96;
   const cy = H / 2;
-  ctx.fillStyle = "#e76f51";
+  ctx.fillStyle = empty ? "#9aa7aa" : mine ? "#e0a81e" : "#e76f51";
   ctx.beginPath();
   ctx.arc(cx, cy, 62, 0, Math.PI * 2);
   ctx.fill();
@@ -101,15 +102,22 @@ export function drawHouseSign(c: HTMLCanvasElement, h: House) {
   ctx.textBaseline = "middle";
   ctx.font = `800 70px ${SIGN_FONT}`;
   ctx.fillText(String(h.number), cx, cy + 4);
-  // name + residents
   ctx.direction = "rtl";
   const tx = (W - 180) / 2 + 20;
+  if (empty) {
+    ctx.fillStyle = "#5f6f73";
+    ctx.font = `800 58px ${SIGN_FONT}`;
+    ctx.fillText("بيت متاح", tx, H / 2 - 28, 300);
+    ctx.font = `700 30px ${SIGN_FONT}`;
+    ctx.fillText("للاعب الجديد القادم", tx, H / 2 + 52, 300);
+    return;
+  }
   ctx.fillStyle = "#1f3b47";
-  ctx.font = `800 66px ${SIGN_FONT}`;
+  ctx.font = `800 62px ${SIGN_FONT}`;
   ctx.fillText(h.name, tx, H / 2 - 30, 300);
-  ctx.fillStyle = "#5f7880";
+  ctx.fillStyle = mine ? "#b07a00" : "#5f7880";
   ctx.font = `700 34px ${SIGN_FONT}`;
-  ctx.fillText(`منزل ${h.number} · ${h.residents} سكان`, tx, H / 2 + 52, 300);
+  ctx.fillText(mine ? `بيتك · ${h.coins} عملة` : `${h.coins} عملة`, tx, H / 2 + 52, 300);
 }
 
 export function drawGateSign(c: HTMLCanvasElement, title: string) {

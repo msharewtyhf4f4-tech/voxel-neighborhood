@@ -1,0 +1,18 @@
+{
+  "name": "مدينة المشتركين",
+  "short_name": "المدينة",
+  "description": "لعبة مدينة مكعبات ثلاثية الأبعاد: بيت باسمك، عملات، ودردشة مع اللاعبين.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#9fd6ee",
+  "background_color": "#9fd6ee",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

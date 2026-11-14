@@ -1,15 +1,16 @@
 import {
   GATE_Z,
   HOUSE_CENTER_X,
-  ROAD_END_Z,
   ROAD_HALF,
   ROAD_START_Z,
   SIDEWALK_H,
   SIDEWALK_OUTER,
+  buildHouses,
   buildPalms,
   mulberry32,
   signPosition,
   type House,
+  type Layout,
 } from "../sim/world";
 import { HOUSE_STYLES, PAL } from "./palette";
 import { place, shade, voxelGeometry, type Voxel } from "./voxel";
@@ -143,7 +144,10 @@ function gateVoxels(z: number): Voxel[] {
   return v;
 }
 
-export function buildCityGeometry(houses: House[]) {
+/** Static scenery depends only on the street length, not on who owns each house. */
+export function buildCityGeometry(layout: Layout) {
+  const ROAD_END_Z = layout.roadEndZ;
+  const houses = buildHouses([], layout.rows);
   const v: Voxel[] = [];
   const rng = mulberry32(21);
   const sw = SIDEWALK_OUTER - ROAD_HALF;
@@ -168,9 +172,9 @@ export function buildCityGeometry(houses: House[]) {
     v.push({ p: [s.x - nx * 0.07, SIGN_Y, s.z - nz * 0.07], s: [2.8, 1.62, 0.1], c: PAL.signBack, r: yaw });
     v.push({ p: [s.x - nx * 0.14, 0.9, s.z - nz * 0.14], s: [0.18, 1.8, 0.18], c: PAL.post, r: yaw });
   });
-  buildPalms().forEach((p, i) => v.push(...palmVoxels(p.x, p.z, i)));
+  buildPalms(layout.rows).forEach((p, i) => v.push(...palmVoxels(p.x, p.z, i)));
   v.push(...gateVoxels(GATE_Z));
-  v.push(...mosqueVoxels(ROAD_END_Z + 8));
+  v.push(...mosqueVoxels(layout.mosqueZ));
   // background skyline
   for (const side of [-1, 1]) {
     for (let z = 10; z > ROAD_END_Z; z -= 9) {
