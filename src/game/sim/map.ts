@@ -24,7 +24,7 @@ export interface Road extends Rect {
   kind: RoadKind;
 }
 
-export type DistrictId = "homes" | "stadium" | "mall" | "park" | "race" | "mosque";
+export type DistrictId = "homes" | "stadium" | "mall" | "park" | "race" | "mosque" | "food";
 export interface District {
   id: DistrictId;
   name: string;
@@ -59,6 +59,7 @@ export const PARK = {
 };
 export const RACE = { x0: 64, x1: 305, z0: 48, z1: 62, startX: 90, finishX: 280, barrierFrom: 80 };
 export const MOSQUE = { x: 0, z: -176 };
+export const RESTAURANT = { x: 92, z: 36 };
 
 export const DISTRICTS: District[] = [
   { id: "homes", name: "الحي السكني", x: 0, z: -70, rect: { x0: -60, x1: 60, z0: -146, z1: 14 } },
@@ -67,6 +68,7 @@ export const DISTRICTS: District[] = [
   { id: "park", name: "مدينة الألعاب", x: 122, z: -120, rect: PARK.area },
   { id: "race", name: "حلبة السباق", x: 190, z: 55, rect: { x0: RACE.startX, x1: RACE.finishX, z0: RACE.z0, z1: RACE.z1 } },
   { id: "mosque", name: "الجامع", x: MOSQUE.x, z: MOSQUE.z, rect: { x0: -8, x1: 8, z0: -182, z1: -170 } },
+  { id: "food", name: "المطعم", x: RESTAURANT.x, z: RESTAURANT.z, rect: { x0: 87, x1: 97, z0: 30, z1: 42 } },
 ];
 
 export interface CityMap {
@@ -82,7 +84,7 @@ export interface CityMap {
   speedSigns: { x: number; z: number }[];
 }
 
-function fence(r: Rect, gapSide: "west" | "north", gap: { a: number; b: number }, t = 0.5): Rect[] {
+export function fence(r: Rect, gapSide: "west" | "north", gap: { a: number; b: number }, t = 0.5): Rect[] {
   const out: Rect[] = [];
   if (gapSide === "west") {
     out.push({ x0: r.x0, x1: r.x0 + t, z0: r.z0, z1: gap.a }, { x0: r.x0, x1: r.x0 + t, z0: gap.b, z1: r.z1 });
@@ -155,6 +157,7 @@ export function buildCityMap(layout: Layout): CityMap {
   boxes.push(...fence(PARK.area, "west", { a: PARK.gate.z0, b: PARK.gate.z1 }));
   const w = PARK.wheel;
   boxes.push({ x0: w.x - 3, x1: w.x + 3, z0: w.z - 5, z1: w.z + 5 });
+  boxes.push({ x0: RESTAURANT.x - 5, x1: RESTAURANT.x + 5, z0: RESTAURANT.z - 6, z1: RESTAURANT.z + 6 });
   for (const k of KIOSKS) boxes.push({ x0: k.x - 2.5, x1: k.x + 2.5, z0: k.z - 2, z1: k.z + 2 });
   // race barriers + end wall
   boxes.push(
@@ -167,6 +170,7 @@ export function buildCityMap(layout: Layout): CityMap {
   for (let s = 0; s < layout.streets; s++) for (const p of palmsForStreet(s)) circles.push({ ...p, r: 0.45 });
   for (const h of houses) circles.push({ ...signPosition(h), r: 0.2 });
   circles.push({ x: PARK.carousel.x, z: PARK.carousel.z, r: PARK.carousel.r });
+  for (const dz of [-3, 0, 3]) circles.push({ x: RESTAURANT.x - 6.8, z: RESTAURANT.z + dz, r: 0.7 });
 
   const signs: RoadSign[] = [
     { x: 9, z: 9, yaw: 0 },

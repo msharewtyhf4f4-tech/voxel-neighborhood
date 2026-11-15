@@ -30,6 +30,8 @@ interface GameUI {
   chatOpen: boolean;
   messages: ChatMessage[];
   bubbles: Record<string, { id: string; text: string }>;
+  /** race status line shown in the HUD, e.g. "انطلق!" or the finish time */
+  raceMsg: { id: number; text: string } | null;
   start: (me: Me, coins: number, residents: Resident[], messages: ChatMessage[]) => void;
   reset: () => void;
   upsertResident: (r: Resident) => void;
@@ -40,6 +42,7 @@ interface GameUI {
   setNearCar: (v: boolean) => void;
   setChatOpen: (v: boolean) => void;
   addMessage: (m: ChatMessage) => void;
+  setRaceMsg: (text: string | null) => void;
 }
 
 const BUBBLE_MS = 5000;
@@ -55,6 +58,7 @@ const initial = {
   chatOpen: false,
   messages: [],
   bubbles: {},
+  raceMsg: null as { id: number; text: string } | null,
 };
 
 export const useGame = create<GameUI>((set, get) => ({
@@ -77,6 +81,7 @@ export const useGame = create<GameUI>((set, get) => ({
   setCarState: (carState) => set({ carState }),
   setNearCar: (nearCar) => set({ nearCar }),
   setChatOpen: (chatOpen) => set({ chatOpen }),
+  setRaceMsg: (text) => set({ raceMsg: text === null ? null : { id: Date.now(), text } }),
   addMessage: (m) => {
     if (get().messages.some((x) => x.id === m.id)) return;
     set((s) => ({

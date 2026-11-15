@@ -56,7 +56,8 @@ export interface House {
   side: -1 | 1;
   x: number;
   z: number;
-  floors: 1 | 2;
+  /** 0 = tent, 1–3 = storeys */
+  floors: 0 | 1 | 2 | 3;
   style: number;
 }
 

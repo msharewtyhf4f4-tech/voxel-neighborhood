@@ -2,13 +2,28 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Runtime } from "../runtime";
-import { canEnterCar, mergeInput, stepCar, stepWalker, applyVertical, collectCoins } from "../sim/motion";
+import { raceCross } from "../sim/map";
+import {
+  angleDiff,
+  applyVertical,
+  cameraRelative,
+  canEnterCar,
+  collectCoins,
+  mergeInput,
+  stepCar,
+  stepWalker,
+} from "../sim/motion";
 import { useGame } from "../store";
 
 const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyW", "KeyA", "KeyS", "KeyD"]);
 const CAM_DAMP = 4;
+/** how fast the camera swings behind the walker / car (rad/s, scaled by speed) */
+const CAM_FOLLOW_WALK = 1.2;
+const CAM_FOLLOW_CAR = 2.2;
+/** after a manual camera drag, wait this long before auto-follow resumes */
+const CAM_DRAG_HOLD_S = 2.5;
 
-/** The single per-frame stepper: input → sim → coins → camera → light. */
+/** The single per-frame stepper: input → sim → coins → race → camera → light. */
 export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
   const light = useRef<THREE.DirectionalLight>(null);
   const scene = useThree((s) => s.scene);
@@ -60,18 +75,29 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     const dt = Math.min(delta, 0.05);
     rt.time += dt;
     const ui = useGame.getState();
-    const mv = mergeInput(rt.input, rt.keys);
+    const stick = mergeInput(rt.input, rt.keys);
+    const mv = cameraRelative(stick.x, stick.y, rt.camYaw);
     const jump = rt.input.jumpQueued || rt.keys.has("Space");
     rt.input.jumpQueued = false;
     const driving = ui.carState === "driving";
 
     if (driving) {
-      stepCar(rt.car, { ...mv, jump }, dt, rt.layout.walkEndZ);
+      const prevX = rt.car.x;
+      stepCar(rt.car, { ...mv, jump }, dt, rt.map);
       rt.player.x = rt.car.x;
       rt.player.z = rt.car.z;
+      const cross = raceCross(prevX, rt.car.x, rt.car.z);
+      if (cross === "start") {
+        rt.raceStartAt = rt.time;
+        ui.setRaceMsg("انطلق! 🏁");
+      } else if (cross === "finish" && rt.raceStartAt !== null) {
+        const secs = rt.time - rt.raceStartAt;
+        rt.raceStartAt = null;
+        ui.setRaceMsg(`وصلت خط النهاية في ${secs.toFixed(1)} ثانية`);
+      }
     } else {
-      stepWalker(rt.player, { ...mv, jump }, dt, rt.obstacles, rt.layout.walkEndZ);
-      if (ui.carState === "parked") applyVertical(rt.car, false, 0, dt);
+      stepWalker(rt.player, { ...mv, jump }, dt, rt.map);
+      if (ui.carState === "parked") applyVertical(rt.car, false, 0, dt, 0);
     }
 
     const target = driving ? rt.car : rt.player;
@@ -81,11 +107,19 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     const near = ui.carState === "parked" && canEnterCar(rt.player, rt.car);
     if (near !== ui.nearCar) ui.setNearCar(near);
 
-    // camera: behind and above, looking down the street
+    // camera slowly swings behind the direction of travel (unless dragged by hand)
+    if (rt.time - rt.camDragAt > CAM_DRAG_HOLD_S) {
+      const moving = Math.min(1, target.speed / (driving ? 6 : 4));
+      const rate = (driving ? CAM_FOLLOW_CAR : CAM_FOLLOW_WALK) * moving;
+      if (rate > 0.01) rt.camYaw += angleDiff(target.yaw, rt.camYaw) * (1 - Math.exp(-rate * dt));
+    }
     const back = driving ? (portrait ? 16 : 13) : portrait ? 12 : 10;
     const up = driving ? (portrait ? 10 : 8) : portrait ? 8.5 : 6.5;
-    desired.set(target.x * 0.55, up + target.y * 0.3, target.z + back);
-    desiredLook.set(target.x * 0.8, 1.2 + target.y * 0.5, target.z - (driving ? 7 : 5));
+    const fx = Math.sin(rt.camYaw);
+    const fz = Math.cos(rt.camYaw);
+    desired.set(target.x - fx * back, up + target.y * 0.3, target.z - fz * back);
+    const ahead = driving ? 7 : 5;
+    desiredLook.set(target.x + fx * ahead, 1.2 + target.y * 0.5, target.z + fz * ahead);
     const k = frames.current === 0 ? 1 : 1 - Math.exp(-CAM_DAMP * dt);
     camera.position.lerp(desired, k);
     look.lerp(desiredLook, k);
@@ -94,7 +128,7 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     const l = light.current;
     if (l) {
       l.position.set(target.x + 10, 22, target.z + 8);
-      l.target.position.set(target.x, 0, target.z - 4);
+      l.target.position.set(target.x, 0, target.z);
       l.target.updateMatrixWorld();
     }
 
@@ -110,12 +144,12 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
       intensity={2.4}
       color="#fff0d4"
       shadow-mapSize={[1024, 1024]}
-      shadow-camera-left={-20}
-      shadow-camera-right={20}
+      shadow-camera-left={-24}
+      shadow-camera-right={24}
       shadow-camera-top={24}
       shadow-camera-bottom={-24}
       shadow-camera-near={1}
-      shadow-camera-far={60}
+      shadow-camera-far={70}
       shadow-bias={-0.0004}
       shadow-normalBias={0.04}
     />
