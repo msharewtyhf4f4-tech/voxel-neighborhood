@@ -147,3 +147,78 @@ export function canvasTexture(w: number, h: number, draw: (c: HTMLCanvasElement)
   draw(c);
   return { canvas: c, texture: finish(c) };
 }
+
+/** Generic banner: colored board with a centered Arabic title. */
+export function drawBanner(c: HTMLCanvasElement, title: string, bg: string, fg = "#ffffff", border = "#f2c230") {
+  const ctx = c.getContext("2d")!;
+  const W = c.width;
+  const H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = bg;
+  roundRect(ctx, 0, 0, W, H, Math.min(30, H / 5));
+  ctx.fill();
+  ctx.strokeStyle = border;
+  ctx.lineWidth = Math.max(6, H / 16);
+  roundRect(ctx, 12, 12, W - 24, H - 24, Math.min(22, H / 6));
+  ctx.stroke();
+  ctx.fillStyle = fg;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.direction = "rtl";
+  ctx.font = `800 ${Math.round(H * 0.6)}px ${SIGN_FONT}`;
+  ctx.fillText(title, W / 2, H / 2 + H * 0.05, W - 60);
+}
+
+/** Green road sign: one row per destination, arrow on the left. */
+export function drawDirectionSign(c: HTMLCanvasElement, rows: { name: string; arrow: string }[]) {
+  const ctx = c.getContext("2d")!;
+  const W = c.width;
+  const H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#1d6b47";
+  roundRect(ctx, 0, 0, W, H, 24);
+  ctx.fill();
+  ctx.strokeStyle = "#f4f4ee";
+  ctx.lineWidth = 6;
+  roundRect(ctx, 10, 10, W - 20, H - 20, 18);
+  ctx.stroke();
+  const rh = (H - 30) / rows.length;
+  rows.forEach((r, i) => {
+    const y = 15 + rh * (i + 0.5);
+    ctx.fillStyle = "#f4f4ee";
+    ctx.textBaseline = "middle";
+    ctx.direction = "rtl";
+    ctx.textAlign = "right";
+    ctx.font = `700 ${Math.round(rh * 0.55)}px ${SIGN_FONT}`;
+    ctx.fillText(r.name, W - 34, y + 3, W - 140);
+    ctx.direction = "ltr";
+    ctx.textAlign = "center";
+    ctx.font = `800 ${Math.round(rh * 0.7)}px Tahoma, sans-serif`;
+    ctx.fillStyle = "#f2c230";
+    ctx.fillText(r.arrow, 64, y + 2);
+    if (i > 0) {
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillRect(28, 15 + rh * i - 1, W - 56, 2);
+    }
+  });
+}
+
+/** Round speed-limit sign. */
+export function drawSpeedSign(c: HTMLCanvasElement, limit: number) {
+  const ctx = c.getContext("2d")!;
+  const S = c.width;
+  ctx.clearRect(0, 0, S, S);
+  ctx.fillStyle = "#d62828";
+  ctx.beginPath();
+  ctx.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(S / 2, S / 2, S / 2 - S * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#111111";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `800 ${Math.round(S * 0.38)}px Tahoma, sans-serif`;
+  ctx.fillText(String(limit), S / 2, S / 2 + 4);
+}

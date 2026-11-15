@@ -409,7 +409,7 @@ function parkVoxels(): Voxel[] {
   const w = PARK.wheel;
   const c = PARK.carousel;
   v.push(flat({ x0: a.x0, x1: w.x - 3, z0: gz - 2, z1: gz + 2 }, 0, 0.09, PAL.tileA));
-  v.push(flat({ x0: c.x - 2, x1: c.x + 2, z0: c.z + c.r, z1: gz - 2 }, 0, 0.09, PAL.tileA));
+  v.push(flat({ x0: c.x - 2, x1: c.x + 2, z0: gz + 2, z1: c.z - c.r }, 0, 0.09, PAL.tileA));
   // Ferris wheel base + stepped A-frame legs (the wheel itself rotates, see City.tsx)
   v.push({ p: [w.x, 0.3, w.z], s: [8, 0.6, 9], c: "#5b6670" });
   for (const side of [-1, 1]) {
