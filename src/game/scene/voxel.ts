@@ -7,6 +7,8 @@ export interface Voxel {
   s: Vec3;
   c: string;
   r?: number;
+  /** roll about Z, applied before the yaw */
+  rz?: number;
 }
 
 /** Transform local voxels (front = +Z) to world space at origin, rotated by yaw. */
@@ -31,6 +33,7 @@ const colorCache = new Map<string, THREE.Color>();
 export function voxelGeometry(voxels: Voxel[]): THREE.BufferGeometry {
   const parts = voxels.map((v) => {
     const g = new THREE.BoxGeometry(v.s[0], v.s[1], v.s[2]);
+    if (v.rz) g.rotateZ(v.rz);
     if (v.r) g.rotateY(v.r);
     g.translate(v.p[0], v.p[1], v.p[2]);
     let col = colorCache.get(v.c);
