@@ -124,7 +124,7 @@ export function Avatar({ body: src, hidden }: { body: AvatarBody; hidden: () => 
 
   const equippedId = useWardrobe((s) => s.equippedOutfitId);
   const outfit = useMemo(
-    () => SHOP_OUTFITS.find((o) => o.id === equippedId) ?? SHOP_OUTFITS[0],
+    () => SHOP_OUTFITS.find((o) => o.id === equippedId) ?? SHOP_OUTFITS[0]!,
     [equippedId],
   );
 
