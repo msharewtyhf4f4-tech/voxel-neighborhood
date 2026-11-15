@@ -24,7 +24,7 @@ export default function GameCanvas() {
 
   const maxNumber = residents.reduce((m, r) => Math.max(m, r.number), 0);
   const layout = useMemo(() => makeLayout(maxNumber), [maxNumber]);
-  const houses = useMemo(() => buildHouses(residents, layout.rows), [residents, layout]);
+  const houses = useMemo(() => buildHouses(residents, layout), [residents, layout]);
   useEffect(() => applyCity(rt, layout, houses), [rt, layout, houses]);
 
   useCityLive(true);
@@ -48,7 +48,7 @@ export default function GameCanvas() {
           <Lightformer intensity={1} color="#bfe3ef" position={[-6, 2, -1]} rotation-y={Math.PI / 2} scale={[20, 2, 1]} />
           <Lightformer intensity={0.8} color="#ffe2b8" position={[6, 2, 1]} rotation-y={-Math.PI / 2} scale={[20, 2, 1]} />
         </Environment>
-        <City layout={layout} houses={houses} myId={me.id} />
+        <City rt={rt} layout={layout} houses={houses} myId={me.id} />
         <Coins rt={rt} />
         <Player rt={rt} />
         <Car rt={rt} />
