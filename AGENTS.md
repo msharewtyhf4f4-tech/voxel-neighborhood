@@ -38,3 +38,4 @@ use the editor.
 - Coins are awarded only by the `saveCoinPicks` server function (checks pickups against the real map) calling the service-only `award_coin_pickups` DB function; never let clients send a coin amount.
 - Other players' houses are read via the `city_residents()` DB function (public fields only); `profiles` rows are readable only by their owner.
 - Table grants are explicit and minimal (no anon access; players get SELECT, plus INSERT on chat `user_id, body` only); writes to profiles and coin tables happen only via triggers or service-role server code.
+- Keep `.env` tracked (never add it to `.gitignore`): it holds only publishable backend settings, and published builds read the VITE_* values from it; without it the live app fails to load.
