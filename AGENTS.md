@@ -35,3 +35,5 @@ use the editor.
 - Static city scenery is merged into one vertex-colored geometry (`voxelGeometry`) to keep mobile draw calls low; add new scenery to `cityGeometry.ts`, not as separate meshes.
 - The game route uses `ssr: false` and lazy-loads `GameCanvas`; the canvas wrapper is `dir="ltr"` (drei Html mispositions under RTL) while the HUD is `dir="rtl"`.
 - Subscriber names/residents come from `SUBSCRIBERS` in `src/game/sim/world.ts`.
+- Coins are awarded only by the `saveCoinPicks` server function (checks pickups against the real map) calling the service-only `award_coin_pickups` DB function; never let clients send a coin amount.
+- Other players' houses are read via the `city_residents()` DB function (public fields only); `profiles` rows are readable only by their owner.
