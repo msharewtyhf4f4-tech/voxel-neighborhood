@@ -22,6 +22,13 @@
       "when": 1794806811543,
       "tag": "0002_limit_city_chat_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794806916970,
+      "tag": "0003_tighten_table_and_function_access",
+      "breakpoints": true
     }
   ]
 }
