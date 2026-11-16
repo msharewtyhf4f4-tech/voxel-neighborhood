@@ -13,7 +13,11 @@ import {
   stepCar,
   stepWalker,
 } from "../sim/motion";
+import type { Coin } from "../sim/world";
 import { useGame } from "../store";
+import { queueCoinPicks } from "../net/coinQueue";
+
+const picked: Coin[] = [];
 
 const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyW", "KeyA", "KeyS", "KeyD"]);
 const CAM_DAMP = 4;
@@ -101,7 +105,7 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     }
 
     const target = driving ? rt.car : rt.player;
-    const picked: Coin[] = [];
+    picked.length = 0;
     const gained = collectCoins(rt.coins, target.x, target.z, rt.time, picked);
     if (gained) {
       ui.addPoints(gained);
