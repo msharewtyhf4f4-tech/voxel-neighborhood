@@ -38,6 +38,45 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_pickups: {
+        Row: {
+          spot: string
+          taken_at: string
+          user_id: string
+        }
+        Insert: {
+          spot: string
+          taken_at?: string
+          user_id: string
+        }
+        Update: {
+          spot?: string
+          taken_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coin_runs: {
+        Row: {
+          last_at: string | null
+          last_x: number | null
+          last_z: number | null
+          user_id: string
+        }
+        Insert: {
+          last_at?: string | null
+          last_x?: number | null
+          last_z?: number | null
+          user_id: string
+        }
+        Update: {
+          last_at?: string | null
+          last_x?: number | null
+          last_z?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           coins: number
@@ -73,7 +112,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_coins: { Args: { p_amount: number }; Returns: number }
+      award_coin_pickups: {
+        Args: {
+          p_spots: string[]
+          p_user: string
+          p_xs: number[]
+          p_zs: number[]
+        }
+        Returns: number
+      }
+      city_residents: {
+        Args: never
+        Returns: {
+          coins: number
+          display_name: string
+          house_number: number
+          id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

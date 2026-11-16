@@ -8,6 +8,13 @@
       "when": 1794653255278,
       "tag": "0000_players_houses_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794806688435,
+      "tag": "0001_server_verified_coins_and_private_profiles",
+      "breakpoints": true
     }
   ]
 }

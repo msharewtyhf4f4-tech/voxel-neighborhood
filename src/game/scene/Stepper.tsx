@@ -13,7 +13,11 @@ import {
   stepCar,
   stepWalker,
 } from "../sim/motion";
+import type { Coin } from "../sim/world";
 import { useGame } from "../store";
+import { queueCoinPicks } from "../net/coinQueue";
+
+const picked: Coin[] = [];
 
 const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyW", "KeyA", "KeyS", "KeyD"]);
 const CAM_DAMP = 4;
@@ -101,8 +105,12 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     }
 
     const target = driving ? rt.car : rt.player;
-    const gained = collectCoins(rt.coins, target.x, target.z, rt.time);
-    if (gained) ui.addPoints(gained);
+    picked.length = 0;
+    const gained = collectCoins(rt.coins, target.x, target.z, rt.time, picked);
+    if (gained) {
+      ui.addPoints(gained);
+      queueCoinPicks(picked.map((c) => ({ x: c.x, z: c.z })));
+    }
 
     const near = ui.carState === "parked" && canEnterCar(rt.player, rt.car);
     if (near !== ui.nearCar) ui.setNearCar(near);
