@@ -12,3 +12,8 @@
   - [ ] Amusement park: big Ferris wheel and colorful kiosks
   - [ ] Long straight race street: start/finish lines, side barriers, speed markings
   - [ ] Direction signs on roads to each district + corner mini-map showing player position
+- [ ] Empty city: remove pre-built houses/names; keep only Mall, Stadium, Amusement Park landmarks
+- [ ] Dynamic houses: each logged-in player gets a house on a free plot with sign (name / "هذا بيتك"), enterable, bed to sleep
+- [ ] Bigger, more realistic city: larger terrain, streets, sidewalks, streetlights, trees, textures, lighting (mobile-smooth)
+- [ ] Touch-drag camera rotation outside joystick/buttons
+- [ ] Sky with clouds, street markings, traffic lights, grass textures, soft shadows
