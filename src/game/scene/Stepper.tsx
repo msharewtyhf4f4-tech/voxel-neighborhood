@@ -101,8 +101,12 @@ export function Stepper({ rt, onReady }: { rt: Runtime; onReady: () => void }) {
     }
 
     const target = driving ? rt.car : rt.player;
-    const gained = collectCoins(rt.coins, target.x, target.z, rt.time);
-    if (gained) ui.addPoints(gained);
+    const picked: Coin[] = [];
+    const gained = collectCoins(rt.coins, target.x, target.z, rt.time, picked);
+    if (gained) {
+      ui.addPoints(gained);
+      queueCoinPicks(picked.map((c) => ({ x: c.x, z: c.z })));
+    }
 
     const near = ui.carState === "parked" && canEnterCar(rt.player, rt.car);
     if (near !== ui.nearCar) ui.setNearCar(near);

@@ -35,6 +35,7 @@ interface GameUI {
   start: (me: Me, coins: number, residents: Resident[], messages: ChatMessage[]) => void;
   reset: () => void;
   upsertResident: (r: Resident) => void;
+  setResidents: (list: Resident[]) => void;
   addPoints: (n: number) => void;
   markSaved: (amount: number, serverTotal: number) => void;
   setOnline: (n: number) => void;
@@ -71,6 +72,7 @@ export const useGame = create<GameUI>((set, get) => ({
       const others = s.residents.filter((x) => x.userId !== r.userId);
       return { residents: [...others, r].sort((a, b) => a.number - b.number) };
     }),
+  setResidents: (list) => set({ residents: [...list].sort((a, b) => a.number - b.number) }),
   addPoints: (n) => set((s) => ({ points: s.points + n, unsaved: s.unsaved + n })),
   markSaved: (amount, serverTotal) =>
     set((s) => {

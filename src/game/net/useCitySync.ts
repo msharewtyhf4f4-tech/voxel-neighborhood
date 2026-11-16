@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Resident } from "../sim/world";
+import { COIN_VALUE } from "../sim/world";
 import { useGame, type ChatMessage } from "../store";
+import { clearCoinPicks, returnCoinPicks, takeCoinPicks } from "./coinQueue";
+import { MAX_PICKS_PER_SAVE, saveCoinPicks } from "./coins.functions";
 
 type ProfileRow = { id: string; display_name: string; house_number: number; coins: number };
 type ChatRow = { id: string; user_id: string; author_name: string; body: string; created_at: string };
@@ -34,8 +37,9 @@ export async function loadCity(userId: string) {
     if (!me) await new Promise((r) => setTimeout(r, 600));
   }
   if (!me) throw new Error("لم نجد بيتك. حاول تسجيل الدخول مرة أخرى.");
+  clearCoinPicks();
   const [houses, chat] = await Promise.all([
-    supabase.from("profiles").select("id, display_name, house_number, coins").order("house_number"),
+    supabase.rpc("city_residents"),
     supabase
       .from("chat_messages")
       .select("id, user_id, author_name, body, created_at")
@@ -53,10 +57,17 @@ export async function loadCity(userId: string) {
     );
 }
 
-/** Live updates: new houses, coin totals and chat messages from every player. */
+const HOUSES_REFRESH_MS = 8000;
+
+/** Live updates: chat instantly; houses and coin totals refreshed every few seconds. */
 export function useCityLive(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
+    const refresh = async () => {
+      const { data, error } = await supabase.rpc("city_residents");
+      if (!error && data) useGame.getState().setResidents(data.map(toResident));
+    };
+    const timer = setInterval(() => void refresh(), HOUSES_REFRESH_MS);
     const channel = supabase
       .channel(`city-db-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, ({ new: row }) => {
@@ -69,6 +80,7 @@ export function useCityLive(enabled: boolean) {
       })
       .subscribe();
     return () => {
+      clearInterval(timer);
       void supabase.removeChannel(channel);
     };
   }, [enabled]);
@@ -80,13 +92,19 @@ export function useCoinSaver(enabled: boolean) {
     if (!enabled) return;
     let busy = false;
     const flush = async () => {
-      const { unsaved } = useGame.getState();
-      if (busy || unsaved <= 0) return;
+      if (busy) return;
+      const picks = takeCoinPicks(MAX_PICKS_PER_SAVE);
+      if (picks.length === 0) return;
       busy = true;
-      const amount = Math.min(200, unsaved);
-      const { data, error } = await supabase.rpc("add_coins", { p_amount: amount });
-      busy = false;
-      if (!error && typeof data === "number") useGame.getState().markSaved(amount, data);
+      try {
+        const { total } = await saveCoinPicks({ data: { picks } });
+        // coins the server did not accept are dropped; the bar shows the saved total
+        useGame.getState().markSaved(picks.length * COIN_VALUE, total);
+      } catch {
+        returnCoinPicks(picks);
+      } finally {
+        busy = false;
+      }
     };
     const id = setInterval(flush, 5000);
     const onHide = () => {

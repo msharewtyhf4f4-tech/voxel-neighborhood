@@ -167,7 +167,7 @@ export function stepCar(b: Body, inp: MoveInput, dt: number, map: CityMap) {
 }
 
 /** Marks touched coins as taken and returns the points earned. */
-export function collectCoins(coins: Coin[], x: number, z: number, now: number): number {
+export function collectCoins(coins: Coin[], x: number, z: number, now: number, picked?: Coin[]): number {
   let gained = 0;
   for (const c of coins) {
     if (!coinActive(c, now)) continue;
@@ -176,6 +176,7 @@ export function collectCoins(coins: Coin[], x: number, z: number, now: number): 
     if (dx * dx + dz * dz <= COIN_RADIUS * COIN_RADIUS) {
       c.takenAt = now;
       gained += COIN_VALUE;
+      picked?.push(c);
     }
   }
   return gained;
