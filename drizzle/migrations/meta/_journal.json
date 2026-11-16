@@ -15,6 +15,13 @@
       "when": 1794806688435,
       "tag": "0001_server_verified_coins_and_private_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794806811543,
+      "tag": "0002_limit_city_chat_reads",
+      "breakpoints": true
     }
   ]
 }
